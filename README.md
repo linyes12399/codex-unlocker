@@ -24,12 +24,12 @@
 
 | 文件 | 平台 | 说明 |
 |---|---|---|
-| `Codex解锁版.exe` | Windows | 单文件免安装，**无需 Node.js**，双击即用（推荐） |
-| `Codex解锁启动器.zip` | Windows | bat 版：解压后运行 `启动Codex解锁版.bat`（需要 Node.js） |
-| `Codex解锁启动器-macOS.zip` | macOS | 解压后运行 `启动Codex解锁版.command`（需要 Node.js） |
+| `CodexUnlocker-v14.1.exe` | Windows | 单文件免安装，**无需 Node.js**，双击即用（推荐；即"Codex 解锁版"，下载后名字可随意改） |
+| `CodexLauncher-win-v14.1.zip` | Windows | bat 版：解压后运行 `启动Codex解锁版.bat`（需要 Node.js） |
+| `CodexLauncher-macOS-v14.1.zip` | macOS | 解压后运行 `启动Codex解锁版.command`（需要 Node.js） |
 
 Windows exe 直链（始终指向最新版）：
-`https://github.com/linyes12399/codex-unlocker/releases/latest/download/Codex%E8%A7%A3%E9%94%81%E7%89%88.exe`
+`https://github.com/linyes12399/codex-unlocker/releases/latest/download/CodexUnlocker-v14.1.exe`
 
 > - Windows exe 未做数字签名：首次运行如遇 SmartScreen 蓝色提示，点"更多信息 → 仍要运行"；杀毒软件提示时选"允许"。
 > - macOS 版为 zip 而非 dmg：本项目 mac 端是脚本（`.command`），不是 `.app`，zip 解压即用就是正确形态；且 dmg 制作工具链（hdiutil）只在 macOS 上有。
