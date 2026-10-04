@@ -1,0 +1,99 @@
+# 自动打包发布：打 v* 标签时自动构建三样产物并发布 Release；也可手动触发试构建（不发布）
+# 产物（ASCII 名，GitHub Release 资产不支持中文文件名）：
+#   CodexUnlocker-<版本>.exe        Windows 单文件版（Node SEA，内嵌 Node.js）
+#   CodexLauncher-win-<版本>.zip    Windows bat 版
+#   CodexLauncher-macOS-<版本>.dmg  macOS 磁盘映像（runner 的 hdiutil 制作）
+#   CodexLauncher-macOS-<版本>.zip  macOS zip（备用形态）
+# 说明：test/patch-test.js 依赖的补丁样本（newstore/oldstore-bundles）含官方应用代码，
+#       因版权不入库，所以 CI 只跑不依赖样本的检查；补丁命中与黄金样本比对在本地开发机验证。
+name: build-release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write # release job 发布 Release 需要
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: 语法检查与不依赖补丁样本的测试
+        shell: bash
+        run: |
+          node --check codex-launcher.js
+          node --check lib/launcher-core.js
+          node --check codex-launcher-mac.js
+          node --check pack-exe.js
+          node test/install-discovery-test.js
+          node test/net-override-test.js
+          node test/find-node-test.js
+      - name: 打 Windows zip 并核验
+        shell: bash
+        run: |
+          python -X utf8 pack.py
+          python -X utf8 test/zip-check.py
+      - name: 打单文件 exe（Node SEA；runner 上没有本机 Codex，跳过冒烟）
+        shell: bash
+        run: node pack-exe.js --no-smoke
+      - name: 整理产物为 ASCII 文件名
+        shell: pwsh
+        run: |
+          if ($env:GITHUB_REF_TYPE -eq 'tag') { $v = $env:GITHUB_REF_NAME -replace '^v','' } else { $v = "ci-$env:GITHUB_RUN_NUMBER" }
+          "VERSION=$v" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          New-Item -ItemType Directory -Force -Path out | Out-Null
+          Copy-Item 'dist\Codex解锁版.exe' "out\CodexUnlocker-$v.exe"
+          Copy-Item 'dist\Codex解锁启动器.zip' "out\CodexLauncher-win-$v.zip"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-dist
+          path: out/*
+
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: 打 mac zip
+        run: python3 pack-mac.py
+      - name: 制作 dmg（内含启动器目录 + Applications 拖拽符号）
+        run: |
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then V="${GITHUB_REF_NAME#v}"; else V="ci-$GITHUB_RUN_NUMBER"; fi
+          echo "VERSION=$V" >> "$GITHUB_ENV"
+          rm -rf dmg-extract dmg-src out
+          mkdir -p dmg-extract out
+          ditto -x -k "dist/Codex解锁启动器-macOS.zip" dmg-extract
+          mv "dmg-extract/Codex解锁启动器-macOS" "dmg-src"
+          ln -s /Applications "dmg-src/Applications"
+          hdiutil create -volname "Codex解锁启动器" -srcfolder dmg-src -ov -format UDZO "out/CodexLauncher-macOS-$V.dmg"
+          cp "dist/Codex解锁启动器-macOS.zip" "out/CodexLauncher-macOS-$V.zip"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-dist
+          path: out/*
+
+  release:
+    if: github.ref_type == 'tag' && startsWith(github.ref_name, 'v')
+    needs: [windows, macos]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+          path: out
+      - name: 发布 Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          V="${GITHUB_REF_NAME#v}"
+          gh release create "$GITHUB_REF_NAME" out/* \
+            --title "v$V" \
+            --notes "自动构建。下载见下方 Assets：Windows 推荐单文件 \`CodexUnlocker-$V.exe\`（无需 Node.js）；macOS 用 \`CodexLauncher-macOS-$V.dmg\`（打开后把目录拖到 Applications，或直接双击运行里面的 启动Codex解锁版.command）。前提是已安装官方 Codex。Windows exe 未签名，SmartScreen 选『更多信息 → 仍要运行』。详细说明见 README。"
