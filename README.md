@@ -1,6 +1,39 @@
 # Codex 解锁启动器
 
-自动跟随官方 Codex 桌面端最新版本，打补丁解锁思考强度（Max / Ultra）和速度档位（Fast / Ultrafast），生成独立镜像启动。
+> **一句话**：不改官方 Codex 一个字节，复制一份"解锁版"——多出 Max / Ultra 思考强度与 Fast / Ultrafast 速度档，并修复 cc-switch 路由场景下的 401 与 Ultrafast 失效。
+
+## 项目简介
+
+**项目作用**：微软商店版 / 官网安装版的 Codex 桌面应用，会按账号档位锁住思考强度和速度档。本启动器把电脑上已装的官方 Codex **复制成本地镜像**，在镜像内打补丁解锁之后启动：
+
+- 思考强度 6 档：低 / 中 / 高 / 极高 / **Max / Ultra**
+- 速度档 3 档：标准 / 快速 / **Ultrafast**（请求体真实携带 `service_tier: "ultrafast"`，中转站后台可识别）
+- 修复 cc-switch 场景：关闭路由后 401 API_KEY_REQUIRED、路由模式下 Ultrafast 被丢弃
+
+**项目优势**：
+
+- **原版零修改**：补丁只作用于 `%USERPROFILE%\ChatGPT-Patched` 镜像；原版随时照常打开，删掉镜像即完全还原
+- **不折腾配置**：不写 `~/.codex/config.toml`，cc-switch 随便切换供应商/路由，修复照样生效；日志绝不打印任何密钥
+- **自动跟随官方更新**：官方更新后下一次启动自动重建镜像；补丁按内容匹配 + 多写法变体 + 分组部分解锁，已在 26.928 / 26.930 两代验证
+- **开箱即用**：单文件 `Codex解锁版.exe`（内嵌 Node.js，无需安装）或 bat 版；首次运行自动创建桌面/开始菜单图标，第二次启动约 2 秒
+- **可验证**：网络行为有端到端验收测试（真实 app-server + 本机回显服务器 + 假 key，见 `test/app-server-probe.js`），发行包与源码一致性有 64 项自动检查
+
+## 下载安装包
+
+到 **[Releases 最新版](https://github.com/linyes12399/codex-unlocker/releases/latest)** 下载：
+
+| 文件 | 平台 | 说明 |
+|---|---|---|
+| `Codex解锁版.exe` | Windows | 单文件免安装，**无需 Node.js**，双击即用（推荐） |
+| `Codex解锁启动器.zip` | Windows | bat 版：解压后运行 `启动Codex解锁版.bat`（需要 Node.js） |
+| `Codex解锁启动器-macOS.zip` | macOS | 解压后运行 `启动Codex解锁版.command`（需要 Node.js） |
+
+Windows exe 直链（始终指向最新版）：
+`https://github.com/linyes12399/codex-unlocker/releases/latest/download/Codex%E8%A7%A3%E9%94%81%E7%89%88.exe`
+
+> - Windows exe 未做数字签名：首次运行如遇 SmartScreen 蓝色提示，点"更多信息 → 仍要运行"；杀毒软件提示时选"允许"。
+> - macOS 版为 zip 而非 dmg：本项目 mac 端是脚本（`.command`），不是 `.app`，zip 解压即用就是正确形态；且 dmg 制作工具链（hdiutil）只在 macOS 上有。
+> - 前提：电脑上要先装好官方 Codex（Windows：微软商店 OpenAI.Codex 或官网安装版；macOS：官方 Codex.app）。
 
 - **Windows**：微软商店版或官网 exe 安装版 Codex，入口 `启动Codex解锁版.bat`，细节见 `使用说明.txt`
 - **macOS**：官方 `Codex.app`（Apple 芯片），入口 `启动Codex解锁版.command`，细节见 [README-macOS.md](README-macOS.md)
