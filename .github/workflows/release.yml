@@ -38,6 +38,7 @@ jobs:
         shell: bash
         run: |
           python -X utf8 pack.py
+          python -X utf8 pack-mac.py
           python -X utf8 test/zip-check.py
       - name: 打单文件 exe（Node SEA；runner 上没有本机 Codex，跳过冒烟）
         shell: bash
