@@ -26,14 +26,17 @@
 |---|---|---|
 | `CodexUnlocker-v14.1.exe` | Windows | 单文件免安装，**无需 Node.js**，双击即用（推荐；即"Codex 解锁版"，下载后名字可随意改） |
 | `CodexLauncher-win-v14.1.zip` | Windows | bat 版：解压后运行 `启动Codex解锁版.bat`（需要 Node.js） |
-| `CodexLauncher-macOS-v14.1.zip` | macOS | 解压后运行 `启动Codex解锁版.command`（需要 Node.js） |
+| `CodexLauncher-macOS-v14.1.dmg` | macOS | 磁盘映像：打开后把里面的目录拖到 Applications，双击 `启动Codex解锁版.command`（需要 Node.js） |
+| `CodexLauncher-macOS-v14.1.zip` | macOS | zip 备用形态，内容与 dmg 相同 |
 
 Windows exe 直链（始终指向最新版）：
 `https://github.com/linyes12399/codex-unlocker/releases/latest/download/CodexUnlocker-v14.1.exe`
 
 > - Windows exe 未做数字签名：首次运行如遇 SmartScreen 蓝色提示，点"更多信息 → 仍要运行"；杀毒软件提示时选"允许"。
-> - macOS 版为 zip 而非 dmg：本项目 mac 端是脚本（`.command`），不是 `.app`，zip 解压即用就是正确形态；且 dmg 制作工具链（hdiutil）只在 macOS 上有。
+> - macOS 的 dmg 由 GitHub Actions 的 macOS 机器自动制作（`hdiutil`），打开后把目录拖到 Applications 即可；zip 是备用形态。
 > - 前提：电脑上要先装好官方 Codex（Windows：微软商店 OpenAI.Codex 或官网安装版；macOS：官方 Codex.app）。
+
+**自动构建**：发行包由 [.github/workflows/release.yml](.github/workflows/release.yml) 在 GitHub Actions 上自动构建——推一个 `v*` 标签即自动打包三平台产物并发布 Release（Windows runner 出 exe/zip，macOS runner 出 dmg/zip）；也可以在 Actions 页面手动触发试构建（不发布）。
 
 - **Windows**：微软商店版或官网 exe 安装版 Codex，入口 `启动Codex解锁版.bat`，细节见 `使用说明.txt`
 - **macOS**：官方 `Codex.app`（Apple 芯片），入口 `启动Codex解锁版.command`，细节见 [README-macOS.md](README-macOS.md)
