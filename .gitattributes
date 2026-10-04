@@ -1,0 +1,6 @@
+# macOS 脚本必须保持 LF（CRLF 会让 .command 无法在 Mac 上运行）
+*.command text eol=lf
+*.sh text eol=lf
+# Windows 脚本必须保持 CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf

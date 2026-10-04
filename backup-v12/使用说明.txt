@@ -1,0 +1,44 @@
+Codex 解锁启动器
+================
+
+能做什么
+  基于微软商店版 Codex 生成一个"解锁版"副本：思考强度多出 Max / Ultra，速度档多出 Fast / Ultrafast。
+  商店原版不会被修改，随时可以照常从开始菜单打开原版。
+
+使用前提
+  1. Windows 10 / 11（64 位）
+  2. 已从微软商店安装 Codex（OpenAI 官方应用）
+  3. 用户目录所在的盘（一般是 C 盘）至少留出 5 GB 空间
+
+怎么用
+  1. 把压缩包整个解压到任意位置（路径里有中文也没关系），不要在压缩包里直接双击
+  2. 先彻底退出商店版 Codex（任务栏右下角托盘图标 -> 右键 -> 退出）
+  3. 双击"启动Codex解锁版.bat"
+     第一次会复制并修补一份 Codex（约 2 GB，需要一两分钟），之后每次都是直接打开
+  4. 以后都用这个 bat 启动。商店版 Codex 自动更新后，启动器会自动重新生成解锁版
+
+会改动电脑上的哪些东西
+  %USERPROFILE%\ChatGPT-Patched\
+      解锁版副本和状态文件
+  %USERPROFILE%\.codex\model-catalog-ultrafast.json
+      模型目录（每个模型都带上 Ultrafast 档）
+  %USERPROFILE%\.codex\config.toml
+      里面没有 model_catalog_json 时，会在第一行加上它，指向上面的模型目录；
+      改之前原文件备份为 config.toml.before-codex-launcher
+
+卸载
+  1. 删除 %USERPROFILE%\ChatGPT-Patched 文件夹
+  2. 删除 config.toml 第一行的 model_catalog_json（或者用备份文件还原）
+
+常见问题
+  * 提示"补丁未命中"
+    商店版 Codex 更新后改了代码，这一版补丁暂时不适配。启动器会继续打开之前生成的解锁版；
+    如果从来没生成过，就打开商店原版。等拿到新版启动器后替换 codex-launcher.js 即可。
+  * 双击后解锁版窗口没出来
+    多半是商店原版还在后台运行（Codex 只允许开一个）。先在托盘里彻底退出 Codex 再试。
+  * 提示没找到 Node.js
+    商店版 Codex 没装好。重新安装商店版 Codex，或者安装 Node.js（https://nodejs.org）。
+
+注意
+  解锁版发出的请求默认带 service_tier = ultrafast。是否生效、怎么计费由你用的服务端决定；
+  如果服务端不认这个参数导致报错，请改用商店原版。使用风险自负。

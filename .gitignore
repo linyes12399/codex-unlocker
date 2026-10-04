@@ -1,0 +1,25 @@
+# ---- 大文件 / 二进制素材（超出 GitHub 100MB 单文件限制，也不属于源码）----
+app.asar*
+*.asar
+extracted-asar/
+patched-bundles/
+oldstore-bundles/
+newstore-bundles/
+webview-assets/
+node_modules/
+dist/
+capture/
+*.png
+
+# ---- 日志与抓包产物（请求头里可能带真实密钥，绝不入库）----
+*.log
+
+# ---- 测试/构建临时目录 ----
+.tmp-*/
+
+# ---- ZCode 工具状态 ----
+.zcode/
+
+# ---- 杂项 ----
+nul
+Thumbs.db

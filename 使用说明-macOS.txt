@@ -1,0 +1,63 @@
+Codex 解锁启动器 · macOS 版
+==========================
+
+能做什么
+  基于官方 Codex.app 生成一个"解锁版"副本：思考强度多出 Max / Ultra，速度档多出 Fast / Ultrafast。
+  官方原版不会被改动，随时可以照常打开原版。
+
+使用前提
+  1. macOS（Apple 芯片：M1/M2/M3/M4 …）
+  2. 已安装官方 Codex 桌面版（Codex.app 在"应用程序"里）
+  3. 已安装 Node.js（brew install node，或到 https://nodejs.org 下载 LTS 安装包）
+  4. 磁盘至少留出 6～8 GB 空闲空间（要完整拷贝一份 Codex.app）
+
+怎么用
+  1. 把压缩包整个解压到任意目录（不要在压缩包里直接双击运行）
+  2. 先彻底退出 Codex（菜单栏 Codex → 退出 Codex）
+  3. 双击"启动Codex解锁版.command"
+      第一次会拷贝并修补一份 Codex（约 2 GB，需要一两分钟），之后每次都是直接打开
+  4. 以后都用这个 .command 启动。官方 Codex 更新后，启动器会自动重新生成解锁版
+
+  首次运行如果被系统拦住，按下面任一种方式处理：
+    * 提示"来自身份不明的开发者"：右键点这个 .command → 打开 → 再点"打开"
+    * 提示没有执行权限：打开"终端"，cd 到解压出来的目录，执行
+          chmod +x *.command
+    * 干脆一次性去掉隔离属性（在"终端"里，把路径换成你的解压目录）：
+          xattr -dr com.apple.quarantine "/你的/解压目录"
+
+会改动电脑上的哪些东西
+  ~/Codex-Patched/Codex.app
+      解锁版副本；同目录下 launcher-state.json 记录状态
+  ~/.codex/model-catalog-ultrafast.json
+      模型目录（每个模型都带上 Ultrafast 档）
+  ~/.codex/config.toml
+      里面没有 model_catalog_json 时，会在第一行加上它，指向上面的模型目录；
+      改动前原文件备份为 config.toml.before-codex-launcher
+  ~/Library/Application Support/Codex/
+      原版与解锁版共用同一份用户数据（登录状态、设置都还在，不用重新登录）
+
+卸载
+  1. 删除 ~/Codex-Patched 文件夹
+  2. 删掉 config.toml 第一行的 model_catalog_json（或用备份文件还原）
+
+常见问题
+  * 提示"补丁未命中"
+    Codex 更新后代码变了，这一版补丁暂时不适配。启动器会继续打开之前生成的解锁版；
+    如果从来没生成过，就保留原版不动。拿到新版启动器后替换 codex-launcher-mac.js 即可。
+  * 双击后解锁版窗口没出来 / 一闪就消失
+    先跑一次"诊断报告.command"。最常见的原因：
+      a) 原版 Codex 还在运行（Codex 只允许开一个）——先彻底退出原版再试
+      b) 代码签名被改动破坏了——见下面那条
+  * 系统提示"「Codex」已损坏，无法打开"
+    这是代码签名/隔离属性被系统拦截。在终端里执行（路径按实际改）：
+        xattr -dr com.apple.quarantine ~/Codex-Patched
+        codesign --force --deep --sign - ~/Codex-Patched/Codex.app
+  * 提示没找到 Node.js
+    brew install node  或者到 https://nodejs.org 下载 LTS 安装包。
+  * 想先确认一下会不会出问题
+    双击"诊断报告.command"：它只看不改，会打印应用版本、签名状态、asar 完整性、补丁命中情况。
+
+注意
+  解锁版发出的请求默认带 service_tier = ultrafast。是否生效、怎么计费由你用的服务端决定；
+  如果服务端不认这个参数导致报错，请改用官方原版。使用风险自负。
+  另外：解锁版的签名是 ad-hoc 本机签名，替代了官方签名，只适合自己这台机器用，不要拿去分发。

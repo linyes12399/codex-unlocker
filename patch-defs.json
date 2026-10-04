@@ -1,0 +1,108 @@
+{
+ "markers": {
+  "initial": "536305374",
+  "shared": "show-ultra-in-model-picker-slider",
+  "primary": "FastModeToggle"
+ },
+ "markersExtra": {},
+ "patches": [
+  {
+   "file": "initial",
+   "regex": "\bw+(?:.w+)?(s*w+s*,s*`536305374`s*)",
+   "rep": "!0",
+   "expect": 5,
+   "note": "gate 536305374 -> 永远开启"
+  },
+  {
+   "file": "initial",
+   "old": "!t&&a.includes(i)&&(o=a.filter(e=>e!==i))",
+   "rep": "!t&&a.includes(i)&&(o=a)",
+   "expect": 1,
+   "note": "a8r: 不再剔除 max/ultra"
+  },
+  {
+   "file": "initial",
+   "regex": "(i===`ultra`)&&await )w+(e,n,r,i)",
+   "rep": "${1}0",
+   "expect": 1,
+   "note": "o8r 降级 -> 空操作"
+  },
+  {
+   "file": "initial",
+   "old": "let u=[],d=null,f=c.some(e=>e.supportedReasoningEfforts.some(({reasoningEffort:e})=>e===`max`)),p=o&&c.some(e=>e.supportedReasoningEfforts.some(({reasoningEffort:e})=>e===`ultra`));return c.forEach(",
+   "rep": "let u=[],d=null,f=!0,p=!0;c=c.map(e=>{let t=e.supportedReasoningEfforts??[],n=t.some(t=>t.reasoningEffort===`max`),r=t.some(t=>t.reasoningEffort===`ultra`);return{...e,supportedReasoningEfforts:[...t,...n?[]:[{reasoningEffort:`max`,description:`max effort`}],...r?[]:[{reasoningEffort:`ultra`,description:`Maximum reasoning with automatic task delegation`}]]}});return c.forEach(",
+   "expect": 1,
+   "note": "K6r: 目录补齐 max/ultra"
+  },
+  {
+   "file": "initial",
+   "regex": "let e=o?r.supportedReasoningEfforts:r.supportedReasoningEfforts.filter(({reasoningEffort:e})=>e!==`ultra`),n=(t===`copilot`?[e.find(e=>e.reasoningEffort===`medium`)??{reasoningEffort:`medium`,description:`medium effort`}]:e).filter(({reasoningEffort:e})=>w+(e)&&i.has(e)),a={...r,supportedReasoningEfforts:n};",
+   "rep": "let n=r.supportedReasoningEfforts,a={...r,supportedReasoningEfforts:n};",
+   "expect": 1,
+   "note": "K6r: 去三重过滤"
+  },
+  {
+   "file": "initial",
+   "old": "m=e?.includeUltraReasoningEffort!==!1",
+   "rep": "m=!0",
+   "expect": 1,
+   "note": "includeUltra 强制 true"
+  },
+  {
+   "file": "initial",
+   "old": "d=a&&!u&&c!=null&&c?.requirements?.featureRequirements?.fast_mode!==!1",
+   "rep": "d=!0",
+   "expect": 1,
+   "note": "Fast: isServiceTierAllowed 强制 true"
+  },
+  {
+   "file": "shared",
+   "old": "d=pgn(c.length>0?c:l.length>0?l:u),",
+   "rep": "d=(e=>{let r=new Map;for(let t of e){if(t.thinkingEffort==null)continue;let n=r.get(t.slug);if(n==null)r.set(t.slug,n={top:t,hasU:!1,hasM:!1});n.top=t;t.thinkingEffort===`ultra`&&(n.hasU=!0);t.thinkingEffort===`max`&&(n.hasM=!0)}for(let t of r.values()){t.hasU||e.push({...t.top,thinkingEffort:`ultra`,title:`Ultra`,selectedLabel:void 0});t.hasM||e.push({...t.top,thinkingEffort:`max`,title:`Max`,selectedLabel:void 0})}return e})(pgn(c.length>0?c:l.length>0?l:u)),",
+   "expect": 1,
+   "note": "解析器 options 补 max/ultra"
+  },
+  {
+   "file": "shared",
+   "old": "f=ugn(s,o,n),p=a,",
+   "rep": "f=(e=>{let r;for(let t of e){r=new Map;for(let n of t.options??[]){if(n.thinkingEffort==null)continue;let i=r.get(n.slug);if(i==null)r.set(n.slug,i={top:n,hasU:!1,hasM:!1});i.top=n;n.thinkingEffort===`ultra`&&(i.hasU=!0);n.thinkingEffort===`max`&&(i.hasM=!0)}if(r.size){t.options=t.options??[];for(let n of r.values()){n.hasU||t.options.push({...n.top,thinkingEffort:`ultra`,title:`Ultra`,selectedLabel:void 0});n.hasM||t.options.push({...n.top,thinkingEffort:`max`,title:`Max`,selectedLabel:void 0})}}}return e})(ugn(s,o,n)),p=(e=>{let r=new Map;for(let t of e){if(t.thinkingEffort==null)continue;let n=r.get(t.slug);if(n==null)r.set(t.slug,n={top:t,hasU:!1,hasM:!1});n.top=t;t.thinkingEffort===`ultra`&&(n.hasU=!0);t.thinkingEffort===`max`&&(n.hasM=!0)}for(let t of r.values()){t.hasU||e.push({...t.top,thinkingEffort:`ultra`,title:`Ultra`,selectedLabel:void 0});t.hasM||e.push({...t.top,thinkingEffort:`max`,title:`Max`,selectedLabel:void 0})}return e})(a),",
+   "expect": 1,
+   "note": "解析器 versionOptions/internalOptions 补档"
+  },
+  {
+   "file": "shared",
+   "old": "return{serviceTiersByModelSlug:_,alphaModelSlugs:",
+   "rep": "_=((e,r)=>{for(let[t]of r){let i=e[t]??(e[t]=[]);for(const o of [`fast`,`ultrafast`]){i.some(e=>e.id===o)||i.push({id:o,name:o===`fast`?`Fast`:`Ultrafast`,description:``})}}return e})(_,n);return{serviceTiersByModelSlug:_,alphaModelSlugs:",
+   "expect": 1,
+   "note": "解析器 speed 档补齐 Fast/Ultrafast"
+  },
+  {
+   "file": "shared",
+   "old": "function $Kr(e,t){return[sqr,...(t??[]).map(",
+   "rep": "function $Kr(e,t){let _t=(t&&t.length>0?t:[{id:\"fast\",name:\"Fast\"}]).concat((t??[]).some(t=>eP(t?.id,t?.name)===`ultrafast`)?[]:[{id:`ultrafast`,name:`Ultrafast`}]);return[sqr,..._t.map(",
+   "expect": 1,
+   "note": "$Kr: 菜单注入 Ultrafast"
+  },
+  {
+   "file": "primary",
+   "old": "(t==null||r==null||r.includes(I3[t]))",
+   "rep": "(t==null||r==null||r.includes(I3[t])||t===`max`||t===`ultra`)",
+   "expect": 1,
+   "note": "Xyt: 过滤放行 max/ultra"
+  },
+  {
+   "file": "primary",
+   "old": "Mt=!Le&&!fe&&jt!=null&&wd(it,Et)",
+   "rep": "Mt=!fe&&jt!=null",
+   "expect": 1,
+   "note": "Fast: 图标条件放宽"
+  },
+  {
+   "file": "primary",
+   "old": "Nt=!fe&&!ce&&Ve&&Re.availableOptions.length>1",
+   "rep": "Nt=!fe&&!ce",
+   "expect": 1,
+   "note": "Fast: 选择器条件放宽"
+  }
+ ]
+}
