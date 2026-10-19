@@ -92,6 +92,8 @@ jobs:
     needs: [windows, macos]
     runs-on: ubuntu-latest
     steps:
+      # gh release create 会尝试读本地 git 上下文；这个 job 只下载产物，没有仓库，必须显式 checkout
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           merge-multiple: true
@@ -102,5 +104,6 @@ jobs:
         run: |
           V="${GITHUB_REF_NAME#v}"
           gh release create "$GITHUB_REF_NAME" out/* \
+            --repo "$GITHUB_REPOSITORY" \
             --title "v$V" \
-            --notes "自动构建。下载见下方 Assets：Windows 推荐单文件 \`CodexUnlocker-$V.exe\`（无需 Node.js）；macOS 用 \`CodexLauncher-macOS-$V.dmg\`（打开后把目录拖到 Applications，或直接双击运行里面的 启动Codex解锁版.command）。前提是已安装官方 Codex。Windows exe 未签名，SmartScreen 选『更多信息 → 仍要运行』。详细说明见 README。"
+            --notes "自动构建（适配 Codex 26.1013）。下载见下方 Assets：Windows 推荐单文件 \`CodexUnlocker-$V.exe\`（无需 Node.js，另有 \`CodexUnlocker-latest.exe\` 稳定链接）；macOS 用 \`CodexLauncher-macOS-$V.dmg\`。前提是已安装官方 Codex。Windows exe 未签名，SmartScreen 选『更多信息 → 仍要运行』。详细说明见 README。"
