@@ -24,13 +24,13 @@
 
 | 文件 | 平台 | 说明 |
 |---|---|---|
-| `CodexUnlocker-v14.1.exe` | Windows | 单文件免安装，**无需 Node.js**，双击即用（推荐；即"Codex 解锁版"，下载后名字可随意改） |
-| `CodexLauncher-win-v14.1.zip` | Windows | bat 版：解压后运行 `启动Codex解锁版.bat`（需要 Node.js） |
-| `CodexLauncher-macOS-v14.1.dmg` | macOS | 磁盘映像：打开后把里面的目录拖到 Applications，双击 `启动Codex解锁版.command`（需要 Node.js） |
-| `CodexLauncher-macOS-v14.1.zip` | macOS | zip 备用形态，内容与 dmg 相同 |
+| `CodexUnlocker-latest.exe` | Windows | 单文件免安装，**无需 Node.js**，双击即用（推荐；即"Codex 解锁版"，下载后名字可随意改） |
+| `CodexLauncher-win-latest.zip` | Windows | bat 版：解压后运行 `启动Codex解锁版.bat`（需要 Node.js） |
+| `CodexLauncher-macOS-latest.dmg` | macOS | 磁盘映像：打开后把里面的目录拖到 Applications，双击 `启动Codex解锁版.command`（需要 Node.js） |
+| `CodexLauncher-macOS-latest.zip` | macOS | zip 备用形态，内容与 dmg 相同 |
 
 Windows exe 直链（始终指向最新版）：
-`https://github.com/linyes12399/codex-unlocker/releases/latest/download/CodexUnlocker-v14.1.exe`
+`https://github.com/linyes12399/codex-unlocker/releases/latest/download/CodexUnlocker-latest.exe`
 
 > - Windows exe 未做数字签名：首次运行如遇 SmartScreen 蓝色提示，点"更多信息 → 仍要运行"；杀毒软件提示时选"允许"。
 > - macOS 的 dmg 由 GitHub Actions 的 macOS 机器自动制作（`hdiutil`），打开后把目录拖到 Applications 即可；zip 是备用形态。

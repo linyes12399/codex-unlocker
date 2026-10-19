@@ -51,6 +51,9 @@ jobs:
           New-Item -ItemType Directory -Force -Path out | Out-Null
           Copy-Item 'dist\Codex解锁版.exe' "out\CodexUnlocker-$v.exe"
           Copy-Item 'dist\Codex解锁启动器.zip' "out\CodexLauncher-win-$v.zip"
+          # 稳定别名：README 的 releases/latest/download/CodexUnlocker-latest.exe 永远能下到最新版
+          Copy-Item 'dist\Codex解锁版.exe' "out\CodexUnlocker-latest.exe"
+          Copy-Item 'dist\Codex解锁启动器.zip' "out\CodexLauncher-win-latest.zip"
       - uses: actions/upload-artifact@v4
         with:
           name: windows-dist
@@ -76,6 +79,9 @@ jobs:
           ln -s /Applications "dmg-src/Applications"
           hdiutil create -volname "Codex解锁启动器" -srcfolder dmg-src -ov -format UDZO "out/CodexLauncher-macOS-$V.dmg"
           cp "dist/Codex解锁启动器-macOS.zip" "out/CodexLauncher-macOS-$V.zip"
+          # 稳定别名（同 README 约定）
+          cp "out/CodexLauncher-macOS-$V.dmg" "out/CodexLauncher-macOS-latest.dmg"
+          cp "out/CodexLauncher-macOS-$V.zip" "out/CodexLauncher-macOS-latest.zip"
       - uses: actions/upload-artifact@v4
         with:
           name: macos-dist
