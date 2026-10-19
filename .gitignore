@@ -5,6 +5,7 @@ extracted-asar/
 patched-bundles/
 oldstore-bundles/
 newstore-bundles/
+newest-bundles/
 webview-assets/
 node_modules/
 dist/

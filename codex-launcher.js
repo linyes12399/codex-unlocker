@@ -46,7 +46,7 @@ const MIRROR = MIRROR_ROOT + '/app';
 const STATE_FILE = MIRROR_ROOT + '/launcher-state.json';
 const LEGACY_STATE_FILE = path.join(__dirname, 'launcher-state.json'); // 旧版放在脚本目录
 const LOCK_FILE = MIRROR_ROOT + '/launcher.lock'; // 单实例锁
-const PATCH_SET_VERSION = 'v14'; // 补丁集版本：变更会强制重建（v14 = webview 15 条 + 主进程 net 补丁）
+const PATCH_SET_VERSION = 'v15'; // 补丁集版本：变更会强制重建（v15 = 适配 Codex 26.1013：16 条 webview 补丁 + net 补丁）
 // 设置了 CODEX_ELECTRON_RESOURCES_PATH 时应用从这里读 resources，里面的文件必须与镜像保持一致；没设置就不需要
 const RES_LINK = (process.env.CODEX_ELECTRON_RESOURCES_PATH || '').trim();
 const CODEX_CONFIG = path.join(process.env.CODEX_HOME || path.join(os.homedir(), '.codex'), 'config.toml');

@@ -20,7 +20,7 @@
 // 用例:
 //   1) 准备：robocopy 商店 app 目录 -> 沙箱\AppData\Local\Programs\Codex（假"官网安装版"），
 //      再用旧版样本 app.asar.backup-20261001 覆盖它的 resources\app.asar -> "官网安装版 + 旧版本"
-//   A) 通过 bat 跑 --dry-run（NO_STORE + NO_EXTERNAL；TEMP 目录先删除）：选中沙箱安装版、15/15 命中（旧版走变体）
+//   A) 通过 bat 跑 --dry-run（NO_STORE + NO_EXTERNAL；TEMP 目录先删除）：选中沙箱安装版、全条命中（旧版走变体）
 //   B) 去掉 NO_STORE，用 node 直接跑 --dry-run：选中真实商店版（新版）
 //   C) 解压发行 zip 到 "沙箱\dir with space & 中文\" -> 从该目录 --create-shortcut -> 读回 .lnk 断言
 //      -> 按 .lnk 的 Arguments 追加 " --self-test" 用 cmd 执行，断言退出码 0
@@ -36,6 +36,9 @@ const { spawn, spawnSync } = require('child_process');
 
 // ---------- 路径与常量 ----------
 const ROOT = path.join(__dirname, '..');
+// 期望的补丁条数：从补丁集本身取，避免每加一条补丁就要改一遍 e2e 断言
+// （"失配=0"的严格性不变：total/ok 必须都等于这个数）。
+const PATCH_N = require(path.join(ROOT, 'lib', 'launcher-core.js')).PATCHES.length;
 // 沙箱根：子进程眼中的整个"用户目录"。名字带 PID：同一工作区可能同时跑多个沙箱测试（多主控/重跑），
 // 固定名字会互相 rmSync 掉对方的拷贝与临时文件（实测：并发的一次跑里 ChatGPT.exe 刚拷好就被清、
 // 启动器创建临时文件 ENOENT）；带 PID 后各跑各的，互不干扰
@@ -315,14 +318,15 @@ async function main() {
     ok(typeof sel.mainExe === 'string' && /chatgpt\.exe$/i.test(sel.mainExe), '主程序取体积最大的 ChatGPT.exe（实际 ' + JSON.stringify(sel.mainExe) + '）');
     ok(sel.version === OLD_VERSION, '选中版本是旧版样本 ' + OLD_VERSION + '（实际 ' + JSON.stringify(sel.version) + '）');
     const pa = repA.patch || {};
-    ok(pa.total === 15 && pa.ok === 15 && pa.failCount === 0, '15 条补丁全部命中（total=' + pa.total + ' ok=' + pa.ok + ' failCount=' + pa.failCount + '）');
+    ok(pa.total === PATCH_N && pa.ok === PATCH_N && pa.failCount === 0, PATCH_N + ' 条补丁全部命中（total=' + pa.total + ' ok=' + pa.ok + ' failCount=' + pa.failCount + '）');
     ok(pa.partial === false, '完整解锁，partial === false');
     ok(Array.isArray(pa.skippedGroups) && pa.skippedGroups.length === 0, 'skippedGroups 为 []（实际 ' + JSON.stringify(pa.skippedGroups) + '）');
     const variants = pa.variants && typeof pa.variants === 'object' ? pa.variants : {};
     const viaVariant = Object.values(variants).filter(v => typeof v === 'number' && v !== 0).length;
-    ok(Object.keys(variants).length === 15, 'variants 覆盖全部 15 条命中（实际 ' + Object.keys(variants).length + ' 条）');
-    ok(viaVariant === 4 && Object.values(variants).every(v => typeof v === 'number' && (v === 0 || v === 1)),
-      '旧版恰 4 条 speed 补丁经变体 1 命中（非主定义 ' + viaVariant + ' 条，规格 §10.1）');
+    ok(Object.keys(variants).length === PATCH_N, 'variants 覆盖全部 ' + PATCH_N + ' 条命中（实际 ' + Object.keys(variants).length + ' 条）');
+    // 旧版样本：4 条 speed 补丁走各自的变体；26.1013 新增的 optional 条目在旧版上记 actual=0（不适用）
+    ok(viaVariant === 4 && Object.values(variants).every(v => typeof v === 'number'),
+      '旧版恰 4 条补丁经变体命中（非主定义 ' + viaVariant + ' 条，规格 §10.1）');
     ok(repA.dryRunOk === true, 'dryRunOk === true');
     const okCands = (repA.candidates || []).filter(c => c && c.ok === true);
     ok(okCands.length >= 1 && okCands.every(c => inSandbox(c.path || c.appDir || '') && typeof c.version === 'string' && c.version),
@@ -347,7 +351,7 @@ async function main() {
     ok(!!sel.appDir && nm(sel.appDir).includes('\\windowsapps\\'), '选中的是 WindowsApps 下的商店版（' + String(sel.appDir) + '）');
     ok(!!storePkg && sel.version === storePkg.version, '选中版本与商店 asar 一致（' + String(sel.version) + '，旧版样本 ' + OLD_VERSION + ' 应落选）');
     const pb = repB.patch || {};
-    ok(pb.total === 15 && pb.ok === 15 && pb.failCount === 0, '商店新版 15/15 命中（total=' + pb.total + ' ok=' + pb.ok + ' failCount=' + pb.failCount + '）');
+    ok(pb.total === PATCH_N && pb.ok === PATCH_N && pb.failCount === 0, '商店新版 ' + PATCH_N + '/' + PATCH_N + ' 命中（total=' + pb.total + ' ok=' + pb.ok + ' failCount=' + pb.failCount + '）');
     ok(pb.partial === false && Array.isArray(pb.skippedGroups) && pb.skippedGroups.length === 0, '完整解锁、无跳过组');
     ok(repB.dryRunOk === true, 'dryRunOk === true');
   }
@@ -876,7 +880,7 @@ async function caseC() {
     const sel = repS.selected || {};
     ok(sel.source === 'exe' && sel.version === OLD_VERSION, 'self-test 选中的是沙箱旧版安装版（' + String(sel.source) + ' / ' + String(sel.version) + '）');
     const ps = repS.patch || {};
-    ok(ps.total === 15 && ps.ok === 15, 'self-test 内存试跑 15/15 命中（total=' + ps.total + ' ok=' + ps.ok + '）');
+    ok(ps.total === PATCH_N && ps.ok === PATCH_N, 'self-test 内存试跑 ' + PATCH_N + '/' + PATCH_N + ' 命中（total=' + ps.total + ' ok=' + ps.ok + '）');
   }
   if (adsOk) ok(fs.existsSync(ads), '--self-test 没有删除 :Zone.Identifier（严格只读，§10.6）');
   ok(!fs.existsSync(path.join(MIRROR_SB, 'app', 'resources', 'app.asar')), '--self-test 没有构建镜像');

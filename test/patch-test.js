@@ -144,7 +144,13 @@ const full = core.applyPatchSet(newSample.content, newSample.role);
 printResults(full.results);
 ok(full.failCount === 0, `全部 ${full.results.length} 处补丁命中`);
 ok(full.results.every(resultShapeOk), 'results 每项固定 { note, ok, expect, actual, group, variant }');
-ok(full.results.every(r => r.variant === 0), '新版样本全部命中主定义（variant=0）');
+// 26.930 与 26.1013 的写法不同：26.930 的"模型选择器显示条件"走历史变体（variants 体系），
+// 其余（含 optional 条目的"不适用"）都走主定义。因此这里只断言"没有失配"，且 variant 只可能来自已声明变体。
+ok(full.failCount === 0 || full.results.filter(r => !r.ok).length === 0, '新版样本没有失配条目');
+// 26.930 上"不适用"的判定：ok=true、variant=0、actual=0 —— 只能是声明了 optional 的条目
+const noopOnOld = full.results.filter(r => r.ok && r.variant === 0 && r.actual === 0).map(r => r.note);
+ok(noopOnOld.every(n => core.PATCHES.some(p => p.note === n && p.optional === true)),
+  `26.930 上按"不适用"跳过的只能是 optional 条目（实际：${noopOnOld.join('、') || '无'}）`);
 ok(full.skippedGroups.length === 0 && full.partial === false, '不传 opts：skippedGroups=[]、partial=false（与旧返回结构兼容）');
 for (const [rel, s] of newSample.orig) ok(newSample.content.get(rel) !== s, `bundle 确实被改写: ${path.basename(rel)}`);
 checkSyntax(newSample.content, '新版');
@@ -154,10 +160,44 @@ head('补丁集元数据（分组 effort/speed 与变体）');
 ok(core.PATCHES.every(p => p.group === 'effort' || p.group === 'speed'), '每条补丁都有合法 group');
 const effortN = core.PATCHES.filter(p => p.group === 'effort').length;
 const speedN = core.PATCHES.filter(p => p.group === 'speed').length;
-ok(effortN === 9 && speedN === 6, `分组数量 effort=9 speed=6（实际 effort=${effortN} speed=${speedN}）`);
+// 15 条基础 + 26.1013 新增的 1 条 optional（Uat）；分组数量随之变成 effort 9 / speed 7。
+ok(effortN === 9 && speedN === 7, `分组数量 effort=9 speed=7（实际 effort=${effortN} speed=${speedN}）`);
 const withVariants = core.PATCHES.filter(p => p.variants && p.variants.length);
-ok(withVariants.length === 4, `恰有 4 条补丁带旧版变体（实际 ${withVariants.length}）`);
-ok(withVariants.every(p => p.group === 'speed' && p.variants.every(v => v.expect === 1 && (v.regex || v.old))), '变体声明形态合法且都属于 speed 组');
+ok(withVariants.length >= 4, `至少有 4 条补丁带历史版本变体（实际 ${withVariants.length}）`);
+ok(withVariants.every(p => p.variants.every(v => v.expect === 1 && (v.regex || v.old))), '变体声明形态合法（expect=1 且写了 regex 或 old）');
+ok(withVariants.every(p => p.group === 'speed' || p.group === 'effort'), '带变体的补丁 group 合法');
+// optional 条目只用于"新版本才出现的结构"，不允许泛滥
+const optN = core.PATCHES.filter(p => p.optional).length;
+ok(optN <= 2, `optional 条目不超过 2 条（实际 ${optN}）`);
+
+// ---------- 1b. 最新版样本（26.1013）：老版本走主定义/变体，新结构走新版变体或 optional ----------
+// 目录 newest-bundles/ 由开发机从最新商店版 asar 抽出（含官方代码，不入库）；不存在时跳过。
+{
+  const NEWEST_DIR = path.join(ROOT, 'newest-bundles');
+  const hasNewest = ['app-initial.js', 'app-shared.js', 'app-primary.js'].every(f => fs.existsSync(path.join(NEWEST_DIR, f)));
+  if (!hasNewest) {
+    console.log('  SKIP 最新版样本 newest-bundles/ 不完整（含官方代码，不入库；在装有最新版 Codex 的机器上生成后可跑）');
+  } else {
+    head('补丁集命中（最新版样本 newest-bundles = 26.1013）');
+    checkMarkersUnique(NEWEST_DIR, '最新版');
+    const ns = loadSample(NEWEST_DIR);
+    const nres = core.applyPatchSet(ns.content, ns.role);
+    printResults(nres.results);
+    ok(nres.failCount === 0, `最新版全部 ${nres.results.length} 处补丁命中（实际失配 ${nres.failCount}）`);
+    ok(nres.results.every(resultShapeOk), '最新版 results 每项字段固定');
+    const viaNewVariant = nres.results.filter(r => r.variant > 0);
+    ok(viaNewVariant.every(r => r.variant <= (core.PATCHES.find(p => p.note === r.note)?.variants || []).length),
+      `最新版走变体的条目都在已声明范围内（${viaNewVariant.map(r => r.note + '->v' + r.variant).join('; ') || '无'}）`);
+    ok(nres.skippedGroups.length === 0 && nres.partial === false, '最新版：不传 opts 时 skippedGroups=[]、partial=false');
+    for (const [rel, s] of ns.orig) ok(ns.content.get(rel) !== s, `最新版 bundle 确实被改写: ${path.basename(rel)}`);
+    checkSyntax(ns.content, '最新版');
+    // 最新版同样要能按组原子应用（partial 语义）
+    const ns2 = loadSample(NEWEST_DIR);
+    const n2 = core.applyPatchSet(ns2.content, ns2.role, { allowPartial: true });
+    ok(n2.failCount === 0 && n2.skippedGroups.length === 0, '最新版：按组应用全命中');
+    ok([...ns.orig.keys()].every(rel => ns2.content.get(rel) === ns.content.get(rel)), '最新版：按组应用与默认路径逐字节一致');
+  }
+}
 
 // ---------- 2. 旧版样本：主定义 11 + 变体 4 = 15/15 ----------
 head('补丁集命中（旧版样本 oldstore-bundles，允许走变体）');
@@ -174,10 +214,13 @@ const EXPECTED_VARIANT_NOTES = [
   'Fast: 档位图标显示条件放宽',
   'Fast: 模型选择器显示条件放宽',
 ].sort();
-ok(viaVariant.length === 4 && viaVariant.every(r => r.variant === 1 && r.group === 'speed'),
-  `恰有 4 条走第 1 个变体且都属于 speed 组（实际 ${viaVariant.map(r => r.note + '->v' + r.variant).join('; ') || '无'}）`);
-ok(JSON.stringify(viaVariant.map(r => r.note).sort()) === JSON.stringify(EXPECTED_VARIANT_NOTES), '走变体的恰好是 4 条已知旧版条目');
-ok(oldFull.results.filter(r => r.variant === 0).length === 11, '其余 11 条走主定义');
+ok(JSON.stringify(viaVariant.map(r => r.note).sort()) === JSON.stringify(EXPECTED_VARIANT_NOTES),
+  `走变体的恰好是 4 条已知旧版条目（实际 ${viaVariant.map(r => r.note + '->v' + r.variant).join('; ') || '无'}）`);
+ok(viaVariant.every(r => r.group === 'speed'), '走变体的条目都属于 speed 组');
+ok(oldFull.results.filter(r => r.variant === 0 && r.actual > 0).length === 11,
+  `其余 11 条走主定义（实际 ${oldFull.results.filter(r => r.variant === 0 && r.actual > 0).length}）`);
+ok(oldFull.results.filter(r => r.ok && r.variant === 0 && r.actual === 0).length === 1,
+  `旧版上按"不适用"跳过的 optional 条目恰有 1 条（实际 ${oldFull.results.filter(r => r.ok && r.variant === 0 && r.actual === 0).length}）`);
 for (const [rel, s] of oldSample.orig) ok(oldSample.content.get(rel) !== s, `旧版 bundle 确实被改写: ${path.basename(rel)}`);
 checkSyntax(oldSample.content, '旧版');
 
@@ -220,14 +263,20 @@ head('allowPartial：全命中时与默认路径逐字节一致');
 
 head('allowPartial：speed 组失配 -> 只应用 effort 组');
 {
-  // 构造：在新版 initial 里把 Fast 条目（speed 组）的主定义目标串轻改一名，使其主定义与变体都无法命中。
-  // 其余补丁不受影响（各补丁作用区域互不重叠）。
+  // 构造：在新版 initial 里把"强制请求体带 service_tier"（speed 组、非 optional）的目标串轻改，
+  // 使其主定义与变体都无法命中。其余补丁不受影响（各补丁作用区域互不重叠）。
+  // 注意不能用 Fast 的 d=...fast_mode 那条：它在 26.1013 起是 optional（被 Uat 取代），
+  // 目标串不存在时会被记成"不适用"，不会造成组失配。
   const p = loadSample(NEW_DIR);
   const rel = p.role.initial.rel;
-  const target = 'd=a&&!u&&c!=null&&c?.requirements?.featureRequirements?.fast_mode!==!1';
-  const broken = 'd=a&&!u&&c!=null&&c?.requirements?.featureRequirements?.fast_mode!==!0';
-  p.content.set(rel, p.content.get(rel).split(target).join(broken));
-  ok(countIn(p.content.get(rel), target) === 0, '构造前提：该条主定义目标串已被改写（命中 0）');
+  const target = 'service_tier:';
+  const broken = 'service_tier_:';
+  const origText = p.content.get(rel);
+  // 只改紧邻 system_hints 的那一处（其余出现位置与这条补丁无关）
+  const idx = origText.search(/service_tier:([\w$]+)\?\?void 0,(?=system_hints:)/);
+  ok(idx >= 0, '构造前提：找到 service_tier 目标串');
+  p.content.set(rel, origText.slice(0, idx) + 'service_tier_:VoidUndef,(' + origText.slice(idx + target.length));
+  ok(!/service_tier:([\w$]+)\?\?void 0,(?=system_hints:)/.test(p.content.get(rel)), '构造前提：该条目标串已被改写（命中 0）');
 
   const res = core.applyPatchSet(p.content, p.role, { allowPartial: true });
   printResults(res.results);
@@ -237,14 +286,15 @@ head('allowPartial：speed 组失配 -> 只应用 effort 组');
   ok(JSON.stringify(res.skippedGroups) === JSON.stringify(['speed']), `skippedGroups=['speed']（实际 ${JSON.stringify(res.skippedGroups)}）`);
   ok(miss.length === 1 && miss[0].variant === -1 && miss[0].group === 'speed' && miss[0].expect === 1 && miss[0].actual === 0,
     `唯一失配条目：speed 组、variant=-1、actual=0（实际 ${miss.length} 条：${miss.map(r => r.note).join('; ') || '无'}）`);
-  // 其余 14 条照常命中（含被跳过组里能命中的 5 条），只有 content 里不含被跳过的改动
-  ok(res.results.filter(r => r.ok).length === 14, `14 条 ok（实际 ${res.results.filter(r => r.ok).length}）`);
+  // 其余条目照常解析（含被跳过组里能命中的 5 条），只有 content 里不含被跳过的改动
+  ok(res.results.filter(r => r.ok).length === res.results.length - 1,
+    `${res.results.length - 1} 条 ok（实际 ${res.results.filter(r => r.ok).length}／共 ${res.results.length}）`);
   // effort 组照常应用
   const ini = p.content.get(rel);
   ok(countIn(p.orig.get(rel), '536305374') === 5 && countIn(ini, '536305374') === 0, 'effort 生效：gate 标记已全部替换');
   ok(countIn(p.orig.get(rel), 'c=c.map(e=>{') === 0 && countIn(ini, 'c=c.map(e=>{') === 1, 'effort 生效：K6r 目录补齐已注入');
   // speed 组整体未应用
-  ok(countIn(ini, broken) === 1 && !/service_tier:[\w$]+\|\|"ultrafast"/.test(ini), 'speed 未应用：Fast 条目与 service_tier 均未改写');
+  ok(countIn(ini, 'service_tier_:') === 1 && !/service_tier:[\w$]+\|\|"ultrafast"/.test(ini), 'speed 未应用：service_tier 未改写');
   const sh = p.content.get(p.role.shared.rel);
   ok(countIn(p.orig.get(p.role.shared.rel), 'if(t.thinkingEffort==null)continue;') === 0 && countIn(sh, 'if(t.thinkingEffort==null)continue;') === 2, 'effort 生效：滑块解析器两处 max/ultra 注入在');
   ok(countIn(sh, '((e,r)=>{for(let[t]of r)') === 0 && countIn(sh, '_t=(t&&t.length>0?t:[{id:"fast",name:"Fast"}]).concat(') === 0, 'speed 未应用：serviceTiers 补齐与 Ultrafast 注入均不在');
@@ -259,8 +309,11 @@ head('allowPartial：两组都失配 -> 整体失败（不进入 partial 成功�
   const p = loadSample(NEW_DIR);
   const rel = p.role.initial.rel;
   let t = p.content.get(rel);
-  t = t.split('d=a&&!u&&c!=null&&c?.requirements?.featureRequirements?.fast_mode!==!1').join('d=a&&!u&&c!=null&&c?.requirements?.featureRequirements?.fast_mode!==!0'); // speed
-  t = t.split('m=e?.includeUltraReasoningEffort!==!1').join('m=e?.includeUltraReasoningEffort!==!0'); // effort
+  // effort：破坏 includeUltraReasoningEffort（d8r，非 optional）
+  t = t.split('m=e?.includeUltraReasoningEffort!==!1').join('m=e?.includeUltraReasoningEffort!==!0');
+  // speed：破坏 service_tier 那处（非 optional；Fast 的 d=... 已是 optional，不能用来构造失配）
+  const idx = t.search(/service_tier:([\w$]+)\?\?void 0,(?=system_hints:)/);
+  if (idx >= 0) t = t.slice(0, idx) + 'service_tier_:VoidUndef,(' + t.slice(idx + 'service_tier:'.length);
   p.content.set(rel, t);
   const snapshot = new Map([...p.content]);
   const res = core.applyPatchSet(p.content, p.role, { allowPartial: true });
@@ -268,7 +321,7 @@ head('allowPartial：两组都失配 -> 整体失败（不进入 partial 成功�
   ok(res.partial === false, 'partial=false（照旧整体失败）');
   ok(JSON.stringify(res.skippedGroups) === JSON.stringify(['effort', 'speed']), `skippedGroups 含两组（实际 ${JSON.stringify(res.skippedGroups)}）`);
   ok([...snapshot].every(([k, v]) => p.content.get(k) === v), '所有组都被跳过时 content 未被改动');
-  ok(res.results.filter(r => r.ok).length === 13, '13 条命中（ok:true）+ 2 条未命中');
+  ok(res.results.filter(r => r.ok).length === res.results.length - 2, `${res.results.length - 2} 条命中（ok:true）+ 2 条未命中`);
   ok(res.results.find(r => r.note.startsWith('d8r')).variant === -1 && res.results.find(r => r.note.startsWith('d8r')).actual === 0, 'effort 失配条记录为 variant=-1、actual=0');
 }
 
