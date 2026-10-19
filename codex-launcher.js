@@ -47,6 +47,14 @@ const STATE_FILE = MIRROR_ROOT + '/launcher-state.json';
 const LEGACY_STATE_FILE = path.join(__dirname, 'launcher-state.json'); // 旧版放在脚本目录
 const LOCK_FILE = MIRROR_ROOT + '/launcher.lock'; // 单实例锁
 const PATCH_SET_VERSION = 'v15'; // 补丁集版本：变更会强制重建（v15 = 适配 Codex 26.1013：16 条 webview 补丁 + net 补丁）
+// 补丁集内容哈希：版本号相同但补丁代码被修过时，失败记录不再挡住重试（见 runOnce 的 knownBad）
+const PATCH_HASH = (() => {
+  try {
+    const h = crypto.createHash('sha256');
+    for (const f of ['lib/launcher-core.js', 'codex-launcher.js']) h.update(fs.readFileSync(path.join(__dirname, f)));
+    return h.digest('hex').slice(0, 16);
+  } catch (e) { return null; }
+})();
 // 设置了 CODEX_ELECTRON_RESOURCES_PATH 时应用从这里读 resources，里面的文件必须与镜像保持一致；没设置就不需要
 const RES_LINK = (process.env.CODEX_ELECTRON_RESOURCES_PATH || '').trim();
 const CODEX_CONFIG = path.join(process.env.CODEX_HOME || path.join(os.homedir(), '.codex'), 'config.toml');
@@ -2280,8 +2288,13 @@ async function runOnce(opts, dryRun) {
   log('版本指纹:', fp.slice(0, 12) + '...', reuse ? '（未变化，复用缓存）' : '（已重新计算）');
 
   const needRebuild = !mirrorUsable() || STATE.storeFingerprint !== fp || STATE.patchSetVersion !== PATCH_SET_VERSION;
-  // 同一版本 + 同一补丁集已失败过：不再每次启动都重新拷贝几百 MB
-  const knownBad = STATE.failedFingerprint === fp && STATE.failedPatchSet === PATCH_SET_VERSION;
+  // 同一版本 + 同一补丁集已失败过：不再每次启动都重新拷贝几百 MB。
+  // 但"同一补丁集版本号"不等于"同一份补丁代码"——补丁集在版本号不变的情况下被修过（本轮就踩过：
+  // v15 的语法校验 bug 修好后，旧失败记录让启动器一直跳过重建）。所以同时比对补丁集内容哈希：
+  // 代码变了就重新尝试，只有"同一份代码 + 同一版本 + 同一安装"的确定性失败才跳过。
+  const knownBad = STATE.failedFingerprint === fp
+    && STATE.failedPatchSet === PATCH_SET_VERSION
+    && STATE.failedPatchHash === PATCH_HASH;
 
   let rebuiltOk = false;
   // 需要重建但没做成（补丁失配/空间不足/正在运行/重建抛错）时置 true：这些情况都有给用户看的
@@ -2351,7 +2364,7 @@ async function runOnce(opts, dryRun) {
             writeState({
               ...STATE, fastKey: fk, fastFingerprint: fp,
               failedStoreVersion: inst.source === 'store' ? path.basename(inst.root) : inst.label,
-              failedFingerprint: fp, failedPatchSet: PATCH_SET_VERSION,
+              failedFingerprint: fp, failedPatchSet: PATCH_SET_VERSION, failedPatchHash: PATCH_HASH,
               failedReason: e.message, failedAt: new Date().toISOString(),
             });
           }
