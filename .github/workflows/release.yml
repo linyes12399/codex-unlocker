@@ -46,11 +46,11 @@ jobs:
       - name: 整理产物为 ASCII 文件名
         shell: pwsh
         run: |
-          if ($env:GITHUB_REF_TYPE -eq 'tag') { $v = $env:GITHUB_REF_NAME -replace '^v','' } else { $v = "ci-$env:GITHUB_RUN_NUMBER" }
-          "VERSION=$v" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          if ($env:GITHUB_REF_TYPE -eq 'tag') { $tag = $env:GITHUB_REF_NAME } else { $tag = "ci-$env:GITHUB_RUN_NUMBER" }
+          "TAGVER=$tag" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
           New-Item -ItemType Directory -Force -Path out | Out-Null
-          Copy-Item 'dist\Codex解锁版.exe' "out\CodexUnlocker-$v.exe"
-          Copy-Item 'dist\Codex解锁启动器.zip' "out\CodexLauncher-win-$v.zip"
+          Copy-Item 'dist\Codex解锁版.exe' "out\CodexUnlocker-$tag.exe"
+          Copy-Item 'dist\Codex解锁启动器.zip' "out\CodexLauncher-win-$tag.zip"
           # 稳定别名：README 的 releases/latest/download/CodexUnlocker-latest.exe 永远能下到最新版
           Copy-Item 'dist\Codex解锁版.exe' "out\CodexUnlocker-latest.exe"
           Copy-Item 'dist\Codex解锁启动器.zip' "out\CodexLauncher-win-latest.zip"
@@ -70,8 +70,8 @@ jobs:
         run: python3 pack-mac.py
       - name: 制作 dmg（内含启动器目录 + Applications 拖拽符号）
         run: |
-          if [ "$GITHUB_REF_TYPE" = "tag" ]; then V="${GITHUB_REF_NAME#v}"; else V="ci-$GITHUB_RUN_NUMBER"; fi
-          echo "VERSION=$V" >> "$GITHUB_ENV"
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then V="$GITHUB_REF_NAME"; else V="ci-$GITHUB_RUN_NUMBER"; fi
+          echo "TAGVER=$V" >> "$GITHUB_ENV"
           rm -rf dmg-extract dmg-src out
           mkdir -p dmg-extract out
           ditto -x -k "dist/Codex解锁启动器-macOS.zip" dmg-extract
